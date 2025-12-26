@@ -1,0 +1,243 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 22.04.0 ] */
+/* [wxMaxima: input   start ] */
+check_killer(upto,boxes):=sublist(
+    listify(integer_partitions(upto,boxes)),
+    lambda([x],is(cardinality(setify(x))=boxes and every(lambda([y],is(y<10)),setify(x)) and not member(0,x)))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+La condición es que todas las jaulas estén en una misma fila, columna o cuadrícula de nueve casillas
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+check_many(list):=block(
+    list_evaluations:map(lambda([x],apply(check_killer,x)),list),
+    cartesian:apply(cartesian_product_list,list_evaluations),
+    joint_sum:apply("+",map(lambda([x],x[2]),list)),
+    sublist(cartesian,lambda([x],is(cardinality(apply(union,listify(fullsetify(x))))=joint_sum)))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+including(list,set):=sublist(
+    apply(check_killer,list),
+    lambda([x],subsetp(set,setify(x)))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+excluding(list,set):=sublist(
+    apply(check_killer,list),
+    lambda([x],disjointp(set,setify(x)))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+La siguiente es la forma de generar el conjunto de los dígitos sin 0.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+makeset(j,[j],map("[",makelist(i,i,9)))$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+complement(list):=map(
+    lambda([x],setdifference({1,2,3,4,5,6,7,8,9},apply(union,listify(fullsetify(x))))),
+    list
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Usualmente hacía una conjunto con la unión de aquellos que contenían algo que se tenía que descargar,
+pero he visto la necesidad de mejor hacer varias llamadas centradas en un único conjunto.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+filtered_by_complement(list,set):=sublist(
+    list,
+    lambda([x],not subsetp(setdifference({1,2,3,4,5,6,7,8,9},apply(union,listify(fullsetify(x)))),set))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+filtered_other_way(list,set):=sublist(
+    list,
+    lambda([x],subsetp(setdifference({1,2,3,4,5,6,7,8,9},apply(union,listify(fullsetify(x)))),set))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Intenta hallar un número común a todas las posibilidades.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+common(list):=block(
+    result:[],
+    len:length(first(list)),
+    for i from 1 thru len do (
+        arg_intersec:map(lambda([x],setify(x[i])),list),
+        result:endcons(arg_intersec,result)
+    ),
+    map(lambda([x],apply(intersection,x)),result)
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Sería bueno evaluar si la filtración se debe hacer estratificadamente.
+Se debería evaluar la viabilidad de una función de inclusión y exclusión simultaneas.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+in_ex(cage,set_in,set_ex):=apply(
+    intersection,
+    [fullsetify(including(cage,set_in)),fullsetify(excluding(cage,set_ex))]
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Hace lo que hace complement, pero para la salida de funciones como including o excluding.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+post_inex(list_inex):=apply(
+    intersection,
+    listify(fullsetify(list_inex))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Esta función hace una unión de aquellas jaulas en las cuales no se ha alcanzado a determinar cual de los integrates de list_sets sí está en la jaula.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+or_including(cage,list_sets):=unique(
+    apply(append,
+        map(
+            lambda([x],including(cage,x)),
+            list_sets
+        )
+    )
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+/* stratified(list,list_sets):=block(
+    list_applied:check_many(list),
+    complem:complement(list_applied),
+    sample:flatten(map(lambda([y],unique(sublist(complem,lambda([x],subsetp(y,x))))),list_sets)),
+    for i in sample do list_applied:filtered_by_complement(list_applied,i),
+    list_applied
+)$ */
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+stratified(list,list_sets):=block(
+    list_applied:check_many(list),
+    complem:complement(list_applied),
+    sample:flatten(map(lambda([y],unique(sublist(complem,lambda([x],subsetp(y,x))))),list_sets)),
+    for i in sample do list_applied:filtered_by_complement(list_applied,i),
+    sample:list_applied,
+    complems:map(
+        lambda([x],setdifference({1,2,3,4,5,6,7,8,9},apply(union,listify(fullsetify(x))))),
+        sample
+    ),
+    table_form(apply(join,[complems,sample]))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+He experimentado un problema con la priomera implementación de esta función.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+stratified_other_way(list,list_sets):=block(
+    list_applied:check_many(list),
+    complem:complement(list_applied),
+    sample:flatten(map(lambda([y],unique(sublist(complem,lambda([x],subsetp(y,x))))),list_sets)),
+    for i in sample do list_applied:filtered_other_way(list_applied,i),
+    list_applied
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+stratified_out(list,set):=block(
+    list_evaluations:map(lambda([x],apply(check_killer,x)),list),
+    cartesian:apply(cartesian_product_list,list_evaluations),
+    joint_sum:apply("+",map(lambda([x],x[2]),list)),
+    sample:sublist(cartesian,lambda([x],is(cardinality(apply(union,listify(fullsetify(x))))=joint_sum))),
+    complems:map(
+        lambda([x],setdifference({1,2,3,4,5,6,7,8,9},apply(union,listify(fullsetify(x))))),
+        sample
+    ),
+    sublist(complems,lambda([x],subsetp(set,x)))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Esta función tiene la funcionalidad de aplicar primero check_many, después complement
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+check_complem(list):=block(
+    list_evaluations:map(lambda([x],apply(check_killer,x)),list),
+    cartesian:apply(cartesian_product_list,list_evaluations),
+    joint_sum:apply("+",map(lambda([x],x[2]),list)),
+    sample:sublist(cartesian,lambda([x],is(cardinality(apply(union,listify(fullsetify(x))))=joint_sum))),
+    complems:map(
+        lambda([x],setdifference({1,2,3,4,5,6,7,8,9},apply(union,listify(fullsetify(x))))),
+        sample
+    ),
+    table_form(apply(join,[complems,sample]))
+)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Si se tiene la alineación o disposición adecuada de jaulas se pueden sumar todas y se les resta 45.
+Me parece que algo bueno para los stratified alternativos será generar un lista de conjuntos relacionada con el complemento. Por ejemplo, si es un caso en el cual se quiere que esté incluido el 2 se debe usar un stratified en el cual se excluya todo lo demás.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: comment start ]
+Puede dar como respuesta una lista vacía. Lo que es necesario para que no sea vacía son valores adicionales en set.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+stratified_altern(list,set):=block(
+    list_sets:listify(fullsetify(map("[",listify(setdifference({1,2,3,4,5,6,7,8,9},set))))),
+    stratified(list,list_sets)
+)$
+/* [wxMaxima: input   end   ] */
+
+
+
+/* Old versions of Maxima abort on loading files that end in a comment. */
+"Created with wxMaxima 22.04.0"$
